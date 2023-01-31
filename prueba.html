@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <input type="text" name="correo" id="correo" placeholder="correo">
+
+    <button onclick="saveEmail();">Guardar</button>
+
+    <script>
+
+        async function saveEmail(){
+            let correo = document.getElementById("correo").value;
+            let res = await fetch('http://ec2-54-241-64-82.us-west-1.compute.amazonaws.com:2999/clientes/guardar-correo', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({correo})
+            });
+
+            let json = await res.json();
+            console.log(json);
+        }
+    </script>
+</body>
+</html>
