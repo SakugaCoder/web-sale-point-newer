@@ -238,7 +238,20 @@ const ContraEntrega = styled.div`
 `;
 
 const BasculaInfo = styled.div`
+    p{
+        margin-bottom: 2px;
+        margin-top: 8px;
+        font-size: 34px;
+    }
 
+    input[type='radio']{
+        margin: 0;
+        font: inherit;
+        width: 1.15em;
+        height: 1.15em;
+        border: 0.15em solid currentColor;
+        border-radius: 50%;
+    }
 `;
 
 export default function Main(){
@@ -256,7 +269,8 @@ export default function Main(){
     const [ restrictedMode, setRestrictedMode ] = useState(false);
     const [ kgInterval, setKgInterval] = useState(null);
     const [ finalKg, setFinalKg ] = useState(0);
-    const [ currentKg, setCurrentKg] = useState(1);
+    const [ currentKg, setCurrentKg] = useState(0);
+    const [ scaleWeights, setScaleWeights] = useState({b1: 0, b2:0, b3:0});
     const [ contraEntrega, setContraEntrega ] = useState(false);
     const [ cashRegister, setCashRegister ] = useState(null);
     const [ paymentError, setPaymentError ]  = useState('');
@@ -289,7 +303,8 @@ export default function Main(){
         }
 
         else{
-            setCurrentKg(res_kg.kg_bascula);
+            // setCurrentKg(res_kg.kg_bascula);
+            setScaleWeights({b1: res_kg.kg_bascula, b2: 0 , b3: 0});
             counter = 0;
         }
         // else{
@@ -347,10 +362,10 @@ export default function Main(){
         let cash_register = await SP_API('http://localhost:3002/estado-caja', 'GET');
         console.log(cash_register);
         if(!cash_register.caja){
-            setModalState({visible: true, content: alert('Favor de abrir caja para realizar pedidos') });
+            setModalState({visible: true, content: alertModal('Favor de abrir caja para realizar pedidos') });
         }
         else if(cash_register.caja.estado === 'cerrada'){
-            setModalState({visible: true, content: alert('Caja cerrada. Favor de abrir la caja el dia siguiente para realizar pedidos') });
+            setModalState({visible: true, content: alertModal('Caja cerrada. Favor de abrir la caja el dia siguiente para realizar pedidos') });
         }
 
         setCashRegister(cash_register);
@@ -476,9 +491,19 @@ export default function Main(){
         setErrorMsj('');
         evt.preventDefault();
         let kg = Number(evt.target.kg.value);
-        console.log(kg);
+        let net_weight = Number(evt.target.net_weight.value);
+        
+        if(net_weight <= 0){
+            setErrorMsj("Error. El valor de la tara no puede ser mayor al peso.");
+            return null;
+        }
+
         if(kg > 0){
             item_data.kg = kg;
+            
+            if(net_weight > 0){
+                item_data.kg = net_weight;
+            }
         }
         else{
             item_data.kg = currentKg;
@@ -559,7 +584,7 @@ export default function Main(){
         return null;
     };
 
-    const alert = msj => {
+    const alertModal = msj => {
         return <ProductCardModal>
             <p style={ {fontSize: 20} }>{ msj }</p>
 
@@ -573,25 +598,41 @@ export default function Main(){
     const openProductModal = product_data => {
         setCurrentProduct(product_data);
         if(currentClient){
-            console.log(product_data);
-            // if(product_data.venta_por === 'kg'){
-            //     console.log(currentKg);
-            //     if((Number(currentKg)).toFixed(2) <= 0){
-            //         return null;
-            //     }
-            //     else{
-            //         addProductToBasketHidden(product_data);
-            //     }
-            // }
+            if(currentKg > 0){
+                
+                console.log(product_data);
+                if(product_data.venta_por === 'kg'){
+                    setCurrentInputState('kgPrice');
+                }
 
-            // else if(product_data.venta_por === 'pza'){
-            //     setProductModalState({visible: true});
-            // }
-            setProductModalState({visible: true});
+                else if(product_data.venta_por === 'pza'){
+                    setCurrentInputState('pzaQty');
+                }
+                // if(product_data.venta_por === 'kg'){
+                //     console.log(currentKg);
+                //     if((Number(currentKg)).toFixed(2) <= 0){
+                //         return null;
+                //     }
+                //     else{
+                //         addProductToBasketHidden(product_data);
+                //     }
+                // }
+    
+                // else if(product_data.venta_por === 'pza'){
+                //     setProductModalState({visible: true});
+                // }
+                setProductModalState({visible: true});
+            }
+
+            else{
+                setModalState({visible: true, content: alertModal('El peso no puede ser 0, verifique su bascula')});
+
+            }
+
         }
 
         else{
-            setModalState({visible: true, content: alert('Por favor seleccionar cliente primero')});
+            setModalState({visible: true, content: alertModal('Por favor seleccionar cliente primero')});
         }
     };
 
@@ -740,6 +781,16 @@ export default function Main(){
         setPzaPrice('');
         setPzaQty('');
     }
+
+    const changeScale = evt => {
+        let scale_selected = evt.target.value;
+        let scale_weight = scaleWeights[scale_selected];
+        setCurrentKg(scale_weight);
+        console.log(scale_weight);
+        if(scale_weight === 0){
+            setModalState({visible: true, content: alertModal("El peso no puede ser 0, verifique su bascula") });
+        }
+    }
     
     useEffect( () => {
         getProducts();
@@ -748,6 +799,18 @@ export default function Main(){
         getCashRegister();
         setKgInterval(setInterval(getCurrentKg, 900));
     }, []);
+
+
+    const handleKeyboard = (evt, value, setValue) =>{
+        console.log(evt.target.value);
+        if(evt.target.value.length < value.length){
+            setValue(evt.target.value);
+        }
+        else{
+            setValue(value + (evt.target.value.substring(evt.target.value.length - 1, evt.target.value.length)) );
+        }
+        
+    }
 
 
     return(
@@ -773,23 +836,30 @@ export default function Main(){
                             </CustomerDataItemLeft>
 
                         </CustomerData>
+                        <CustomerDataItemBascula>  
+                                <label htmlFor="b1">
+                                    <BasculaInfo>
+                                        <input type='radio' name="selected-scale" value="b1" id="b1" onChange={ changeScale }/>
+                                        <p>B1:</p>
+                                        <strong>{ currentKg !== 'Error' ? scaleWeights.b1 + 'kg' : 'Error' } </strong>
+                                    </BasculaInfo>
+                                </label>
 
+                                <label htmlFor="b2">
+                                    <BasculaInfo>
+                                        <input type='radio' name="selected-scale" value="b2" id="b2" onChange={ changeScale }/>
+                                        <p>B2:</p>
+                                        <strong>{ scaleWeights.b2 } kg</strong>
+                                    </BasculaInfo>
+                                </label>
 
-                        <CustomerDataItemBascula>
-                                <BasculaInfo>
-                                    <p>Báscula 1:</p>
-                                    <strong>{ currentKg !== 'Error' ? currentKg + ' kg': 'Error' } </strong>
-                                </BasculaInfo>
-
-                                <BasculaInfo>
-                                    <p>Báscula 2:</p>
-                                    <strong>{ 0 } kg</strong>
-                                </BasculaInfo>
-
-                                <BasculaInfo>
-                                    <p>Báscula 3:</p>
-                                    <strong>{ 0 } kg</strong>
-                                </BasculaInfo>
+                                <label htmlFor="b3">
+                                    <BasculaInfo>
+                                    <input type='radio' name="selected-scale" value="b3" id="b3" onChange={ changeScale }/>
+                                        <p>B3:</p>
+                                        <strong>{ scaleWeights.b3 } kg</strong>
+                                    </BasculaInfo>
+                                </label>
                         </CustomerDataItemBascula>
 
                     </CustomerStatus>
@@ -818,7 +888,7 @@ export default function Main(){
             </MainContainer>
 
             { /* Inmutable modal */}
-            <Modal title='Mi titulo' visible={ modalState.visible }  handleModalClose={  handleModalClose } >
+            <Modal title='Custome modal' visible={ modalState.visible }  handleModalClose={  handleModalClose } >
                 { modalState.content }
             </Modal>
 
@@ -874,22 +944,23 @@ export default function Main(){
                                         <tbody>
                                             <tr>
                                                 <td><h3>Precio x {currentProduct.venta_por}</h3></td>
-                                                <td><input type='text' placeholder={currentProduct.price} value={kgPrice} defaultValue={currentProduct.precio} onFocus={ () => setCurrentInputState('kgPrice') }></input></td>
+                                                <td><input type='text' placeholder={currentProduct.price} value={kgPrice} onChange={ (event) => handleKeyboard(event, kgPrice, setKgPrice) }  defaultValue={currentProduct.precio} onFocus={ () => setCurrentInputState('kgPrice') }></input></td>
                                             </tr>
 
                                             <tr>
                                                 <td><h3>Peso bruto</h3></td>
-                                                <td><input type='text' placeholder={currentKg} name='kg' value={kgWeight} onFocus={ () => setCurrentInputState('kgWeight') }></input></td>
+                                                <td><input type='text' placeholder={currentKg} name='kg' value={kgWeight} onChange={ (event) => handleKeyboard(event, kgWeight, setKgWeight) } onFocus={ () => setCurrentInputState('kgWeight') } autoComplete='off'></input></td>
                                             </tr>
 
                                             <tr>
                                                 <td><h3>Tara</h3></td>
-                                                <td><input type='text' placeholder={'0'} value={kgTara} onFocus={ () => setCurrentInputState('tara') }></input></td>
+                                                <td><input type='text' placeholder={'0'} value={kgTara} onChange={ (event) => handleKeyboard(event, kgTara, setKgTara) } onFocus={ () => setCurrentInputState('tara') }></input></td>
                                             </tr>
 
                                             <tr>
                                                 <td><h3>Peso neto</h3></td>
                                                 <td><p>{ getNetWeight() } kg</p></td>
+                                                <input type={'hidden'} value={ getNetWeight() } name='net_weight'></input>
                                             </tr>
 
                                             <tr>
@@ -903,12 +974,12 @@ export default function Main(){
                                     <tbody>
                                         <tr>
                                             <td><h3>Precio x {currentProduct.venta_por}</h3></td>
-                                            <td><input type='text'  placeholder={currentProduct.price} value={pzaPrice} defaultValue={currentProduct.precio} onFocus={ () => setCurrentInputState('pzaPrice') }></input></td>
+                                            <td><input type='text'  placeholder={currentProduct.price} value={pzaPrice} onChange={ (event) => handleKeyboard(event, pzaPrice, setPzaPrice) } defaultValue={currentProduct.precio} onFocus={ () => setCurrentInputState('pzaPrice') }></input></td>
                                         </tr>
 
                                         <tr>
                                             <td><h3>Piezas</h3></td>
-                                            <td><input type='text' name={'kg'} value={pzaQty} defaultValue={1} onFocus={ () => setCurrentInputState('pzaQty') }></input></td>
+                                            <td><input type='text' name={'kg'} value={pzaQty} onChange={ (event) => handleKeyboard(event, pzaQty, setPzaQty) } defaultValue={1} onFocus={ () => setCurrentInputState('pzaQty') }></input></td>
                                         </tr>
 
                                         <tr>

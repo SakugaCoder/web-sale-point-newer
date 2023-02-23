@@ -678,14 +678,14 @@ export default function Pedidos(){
                                 <td>
                                     <select name="orden_pedidos" style={ {padding: 10, fontSize: '16px'} } onChange={ (event) => setFilters({...filters, estado: Number(event.target.value) }) }>
                                         <option value='0'>Estado</option>
-                                        <option value='4'>PCE</option>
+                                        { /* <option value='4'>PCE</option> */ }
                                         <option value='1'>Pagados</option>
                                         <option value='2'>Adeudos</option>
                                     </select>
                                 </td>
-                                <td>Acciones</td>
                                 <td>Abonado</td>
                                 <td>Restante</td>
+                                <td>Acciones</td>
                                 <td>APC</td>
                             </tr>
                         </thead>
@@ -699,6 +699,8 @@ export default function Pedidos(){
                                         <td><p> { item.chalan ? `${item.chalan.split(',')[0]} - ${item.chalan.split(',')[1]}` : null } </p> </td>
                                         <td>{'$'+ roundNumber(item.total_pagar) }</td>
                                         <td>{ getOrderStatusLabel(item) }</td>
+                                        <td>{ item.abonos ? (item.abonos.total_abonado ? '$'+item.abonos.total_abonado : '$0') : null}</td>
+                                        <td>{ item.abonos ? (item.abonos.total_abonado ? '$'+ (item.adeudo - item.abonos.total_abonado): '$' + item.adeudo) : null}</td>
                                         <td>
                                             <div style={ {display: 'flex', flexWrap: 'nowrap'} }>
                                                 <ActionButton className="bg-primary" medium onClick={ () => openDetailModal(item) }>Detalle</ActionButton>
@@ -708,8 +710,6 @@ export default function Pedidos(){
                                                 : null }
                                             </div>
                                         </td>
-                                        <td>{ item.abonos ? (item.abonos.total_abonado ? '$'+item.abonos.total_abonado : '$0') : null}</td>
-                                        <td>{ item.abonos ? (item.abonos.total_abonado ? item.adeudo - item.abonos.total_abonado: item.adeudo) : null}</td>
                                         <td>{ item.abonos ? (item.abonos.detalle_abonos ? getAPCButtons(item.abonos.detalle_abonos, item) : null) : null} </td>
                                     </tr> 
                                 })
@@ -745,7 +745,7 @@ export default function Pedidos(){
                     
                     <ModalButtons>
                         <Button type="submit" className="bg-primary">Pagar</Button>
-                        <Button type="button" className="bg-red" onClick={ () => { handlePaymentModalClose(); setCurrentNumber(''); setErrorMsj(''); } }>Cancelar</Button>
+                        <Button type="reset" className="bg-red" onClick={ () => { handlePaymentModalClose(); setCurrentNumber(''); setErrorMsj(''); } }>Cancelar</Button>
                     </ModalButtons>
                 </ModalForm>
             </Modal>

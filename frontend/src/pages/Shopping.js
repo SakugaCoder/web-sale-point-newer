@@ -404,6 +404,7 @@ export default function Suppliers(){
                             <tr>
                                 <td>Monto</td>
                                 <td>Fecha</td>
+                                <td>Recibe</td>
                             </tr>
                         </thead>
 
@@ -441,6 +442,16 @@ export default function Suppliers(){
                 <h2>NUEVA COMPRA</h2>
                 <form onSubmit={ createShopping }>
                     <div style={ {display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap'} }>
+                        <StyledInput type='date' placeholder='Fecha' label='Fecha' name='date' required maxWidth='300px' defaultValue={ currentDate ? currentDate.date : null }/>
+                
+                        <label>
+                            <p>Proveedor</p>
+                            <select name="supplier_id">
+                                <option value="0">Proveedor</option>
+                                { suppliers ? suppliers.filter( s => s.id !== 1).map(supplier => <option value={ supplier.id }> {supplier.nombre} </option>) : null}
+                            </select>
+                        </label>
+
                         <label>
                             <p>Producto</p>
                             <select name="product_id">
@@ -450,15 +461,6 @@ export default function Suppliers(){
                         </label>
 
                         <StyledInput type='text' placeholder='Cantidad' label='Cantidad' name='kg' required maxWidth='300px'/>
-                        <StyledInput type='date' placeholder='Fecha' label='Fecha' name='date' required maxWidth='300px' defaultValue={ currentDate ? currentDate.date : null }/>
-
-                        <label>
-                            <p>Proveedor</p>
-                            <select name="supplier_id">
-                                <option value="0">Proveedor</option>
-                                { suppliers ? suppliers.filter( s => s.id !== 1).map(supplier => <option value={ supplier.id }> {supplier.nombre} </option>) : null}
-                            </select>
-                        </label>
 
                         <StyledInput type='text' placeholder='Costo' label='Costo' name='costo' required maxWidth='300px'/>
                             
@@ -489,12 +491,6 @@ export default function Suppliers(){
                     <StyledTable>
                         <thead>
                             <tr>
-                                <td><select style={ {fontSize: 20} } name='supplier' onChange={ (evt) => setFilters({fecha: filters.fecha, proveedor: filters.proveedor, producto: Number(evt.target.value)})}>
-                                    <option value="0">Producto</option>
-                                    { products ? products.map(producto => <option value={ producto.id }> {producto.name} </option>) : null }
-                                </select></td>
-
-                                <td>Cantidad</td>
                                 <td><input style={ {fontSize: 18} } type={'date'} name='date' onChange={ (evt) => setFilters({fecha: evt.target.value, proveedor: filters.proveedor, producto: filters.producto})}/></td>
                                 <td>
                                     <select style={ {fontSize: 20} } name='supplier' onChange={ (evt) => setFilters({fecha: filters.fecha, proveedor: Number(evt.target.value), producto: filters.producto })}>
@@ -502,6 +498,13 @@ export default function Suppliers(){
                                         { suppliers ? suppliers.filter( s => s.id !== 4).map(supplier => <option value={ supplier.id }> {supplier.nombre} </option>) : null }
                                     </select>
                                 </td>
+                                <td><select style={ {fontSize: 20} } name='product' onChange={ (evt) => setFilters({fecha: filters.fecha, proveedor: filters.proveedor, producto: Number(evt.target.value)})}>
+                                    <option value="0">Producto</option>
+                                    { products ? products.map(producto => <option value={ producto.id }> {producto.name} </option>) : null }
+                                </select></td>
+
+                                <td>Cantidad</td>
+                                
                                 <td>Costo</td>
                                 <td>Abono</td>
                                 <td>Deuda</td>
@@ -513,10 +516,12 @@ export default function Suppliers(){
                             { tableData ? 
                                filterData().filter(item => item.id_proveedor !== 1).map( (item, index) => {
                                     return <tr key={index}>
-                                        <td>{ products ? products.filter( product => item.id_producto === product.id).map( product => product.name) : item.id_producto}</td>
-                                        <td>{ item.kg }</td>
                                         <td>{ item.fecha }</td>
                                         <td>{ suppliers ? suppliers.filter( supplier => item.id_proveedor === supplier.id).map( supplier => supplier.nombre) : item.id_proveedor}</td>
+                                        <td>{ products ? products.filter( product => item.id_producto === product.id).map( product => product.name) : item.id_producto}</td>
+                                        <td>{ item.kg }</td>
+                                        
+                                        
                                         <td>${ item.costo }</td>
                                         <td>${ item.abonos ? item.abonos.total_abonado_compra : null} </td>
                                         <td>${ item.abonos ? item.costo - item.abonos.total_abonado_compra : item.costo}</td>
