@@ -200,8 +200,8 @@ export default function Inventory(){
                     <Keypad currentNumber={currentNumber} setCurrentNumber={setCurrentNumber} />
 
                     <div className="modal-buttons" style={ {marginTop: 20} }>
-                        <Button type='submit' className="bg-red" >Confirmar</Button>
-                        <Button type='button' onClick={ () => { handleModalClose(); setCurrentNumber('') } }>Cancelar</Button>
+                        <Button type='submit' className="bg-primary" >Confirmar</Button>
+                        <Button type='button' className="bg-red" onClick={ () => { handleModalClose(); setCurrentNumber('') } }>Cancelar</Button>
                     </div>
                 </form>
                 </div>
@@ -220,8 +220,8 @@ export default function Inventory(){
                     <input type='hidden' value={currentNumber ? currentNumber : '0'} name='new_stock'/>
                     <Keypad currentNumber={currentNumber} setCurrentNumber={setCurrentNumber} />
                     <div className="modal-buttons" style={ {marginTop: 20} }>
-                        <Button type='submit' className="bg-red" >Si, actualizar stock</Button>
-                        <Button type='button' onClick={ () => { handleEditModalClose(); setCurrentNumber('') } }>Cancelar</Button>
+                        <Button type='submit' className="bg-primary" >Si, actualizar stock</Button>
+                        <Button type='button' className="bg-red" onClick={ () => { handleEditModalClose(); setCurrentNumber('') } }>Cancelar</Button>
                     </div>
                 </form>
                 </div>

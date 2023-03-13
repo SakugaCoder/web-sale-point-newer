@@ -209,8 +209,8 @@ export default function Users(){
             <Input placeholder='Nueva contraseña' label='Nueva contraseña' name='pass' /> 
             
             <div className="modal-buttons">
-                <Button className="bg-red" type='submit'>Cambiar contraseña</Button>
-                <Button className="bg-white" onClick={ handleModalClose }>Cancelar</Button>
+                <Button className="bg-primary" type='submit'>Cambiar contraseña</Button>
+                <Button className="bg-red" onClick={ handleModalClose }>Cancelar</Button>
             </div>
         </form>
     </div>

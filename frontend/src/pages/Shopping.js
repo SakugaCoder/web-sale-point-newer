@@ -67,6 +67,18 @@ const ModalButtons = styled.div`
     }
 `;
 
+const ModalButtonsAbono = styled.div`
+    display: flex;
+    justify-content: space-between;
+    margin-top: 20px;
+    align-items: flex-end;
+
+    button{
+        max-height: 70px;
+        width: 350px;
+    }
+`;
+
 const ModalForm = styled.form`
     width: 100%;
 
@@ -284,45 +296,51 @@ export default function Suppliers(){
         }
         console.log(deuda);
         if(Number(evt.target.monto_abono.value) > 0 && Number(evt.target.monto_abono.value) <= deuda){
-            let data = {
-                purchase_id: purchase.id,
-                monto_abono: evt.target.monto_abono.value,
-                fecha: evt.target.fecha.value,
-                es_retiro: evt.target.es_retiro.checked,
-            };
+            if(evt.target.recibe.value.length > 0){
+                let data = {
+                    purchase_id: purchase.id,
+                    monto_abono: evt.target.monto_abono.value,
+                    fecha: evt.target.fecha.value,
+                    es_retiro: evt.target.es_retiro.checked,
+                    recibe: evt.target.recibe.value,
+                };
+        
+                console.log(data);
     
-            console.log(data);
-
-            if(data.es_retiro){
-                console.log(estadoCaja);
-                if(estadoCaja.caja){
-                    let total = estadoCaja.ingresos - estadoCaja.retiros + estadoCaja.caja.fondo;
-                    if(Number(data.costo) > total){
-                        setErrorMsj('Error. El costo ingresado es mayor al total de la caja.')
-                        return null;
+                if(data.es_retiro){
+                    console.log(estadoCaja);
+                    if(estadoCaja.caja){
+                        let total = estadoCaja.ingresos - estadoCaja.retiros + estadoCaja.caja.fondo;
+                        if(Number(data.costo) > total){
+                            setErrorMsj('Error. El costo ingresado es mayor al total de la caja.')
+                            return null;
+                        }
+            
+                        else if(Number(data.costo) === 0){
+                            setErrorMsj('Error. El costo ingresado es igual a cero, favor de ingresar una cantidad mayor.')
+                            return null;
+                        }
+                    }
+                }
+    
+        
+                try {
+                    let res = await SP_API('http://localhost:3002/nuevo-abono-compra', 'POST', data); 
+                            
+                    if(res.err === false){
+                        // initialFunction();
+                        window.location.reload();
                     }
         
-                    else if(Number(data.costo) === 0){
-                        setErrorMsj('Error. El costo ingresado es igual a cero, favor de ingresar una cantidad mayor.')
-                        return null;
-                    }
+                    else{
+                        alert('Error al abonar compra');
+                    }   
+                } catch (error) {
+                    console.log(error);
                 }
             }
-
-    
-            try {
-                let res = await SP_API('http://localhost:3002/nuevo-abono-compra', 'POST', data); 
-                        
-                if(res.err === false){
-                    // initialFunction();
-                    window.location.reload();
-                }
-    
-                else{
-                    alert('Error al abonar compra');
-                }   
-            } catch (error) {
-                console.log(error);
+            else{
+                setErrorMsj('Error. Favor de completar el campo recibe.');
             }
         }
 
@@ -414,6 +432,7 @@ export default function Suppliers(){
                                     return <tr key={index}>
                                         <td>${ item.monto_abono }</td>
                                         <td>{ item.fecha }</td>
+                                        <td>{ item.recibe }</td>
                                     </tr>
                                 })
                             : null}
@@ -549,13 +568,12 @@ export default function Suppliers(){
             <Modal title='Abono modal' visible={ abonoModalState.visible }  handleModalClose={ () => { handleAbonoModalClose(); setCurrentNumber(''); setErrorMsj('');} } >
                 <ModalForm onSubmit={ event => abonarCompra(event, currentOrder) }>
                     <FechaInput type={'date'} name='fecha' defaultValue={ currentDate ? currentDate.date : null }/>
-                    <Total>Deuda de compra restante: <strong>$ { currentOrder ? (currentOrder.abonos ? currentOrder.costo - currentOrder.abonos.total_abonado_compra: currentOrder.costo ): '0'} </strong></Total>
-                    <Total>Total de abono a pagar: <strong>$ { currentNumber ? currentNumber : '0'} </strong></Total>
+                    <Total>Adeudo: <strong>$ { currentOrder ? (currentOrder.abonos ? currentOrder.costo - currentOrder.abonos.total_abonado_compra: currentOrder.costo ): '0'} </strong></Total>
+                    {/* <Total>Total de abono a pagar: <strong>$ { currentNumber ? currentNumber : '0'} </strong></Total> */}
+                    <div style={ {display: 'flex', justifyContent: 'center'} }>
+                        <StyledInput type='text' placeholder='Recibe' label='Recibe' name='recibe' required maxWidth='300px'/>
+                    </div>
 
-                    <label style={ {display: estadoCaja ? (estadoCaja.caja.estado === 'abierta' ? 'flex' : 'none') : 'none', justifyContent: 'center',  alignContent: 'center', alignItems: 'center'} }>
-                            <p>Agregar como retiro</p>
-                            <input type={'checkbox'} name="es_retiro" style={ {width: 30, height: 30, marginTop: 40, border: 'solid 2px #000'} } />
-                    </label>
                     
                     {/* <Change>Cambio: <strong> $ { currentOrder ? ((Number(currentNumber) - currentOrder.total_pagar ) > 0 ? (Number(currentNumber) - currentOrder.total_pagar ) : 0).toFixed(2) : 0} </strong></Change> */}
                     <PaymentAmount>${ currentNumber ? currentNumber : '0'}</PaymentAmount>
@@ -567,10 +585,17 @@ export default function Suppliers(){
 
                     <Keypad currentNumber={currentNumber} setCurrentNumber={setCurrentNumber} />
 
-                    <ModalButtons>
-                        <Button type="submit" className="bg-primary">Pagar</Button>
+                    <ModalButtonsAbono>
+                        <div>
+                            <label style={ {display: estadoCaja ? (estadoCaja.caja.estado === 'abierta' ? 'flex' : 'none') : 'none', justifyContent: 'center',  alignContent: 'center', alignItems: 'center'} }>
+                                <p>Retiro de caja</p>
+                                <input type={'checkbox'} name="es_retiro" style={ {width: 30, height: 30, marginTop: 40, border: 'solid 2px #000'} } />
+                            </label>
+                            <Button type="submit" className="bg-primary">Pagar</Button>
+                        </div>
                         <Button type="button" className="bg-red" onClick={ () => { handleAbonoModalClose(); setCurrentNumber(''); setErrorMsj('');} }>Cancelar</Button>
-                    </ModalButtons>
+
+                    </ModalButtonsAbono>
                 </ModalForm>
             </Modal>
             <style>

@@ -456,6 +456,22 @@ app.get('/chalanes', (req, res) => {
     db.close();
 });
 
+
+// Ruta para obtener todos los chalanes por orden ascendente
+app.get('/pago-total-chalan/:chalan', (req, res) => {
+    let db = getDBConnection();
+
+    db.all('SELECT SUM(abonado) as pago_total_chalan FROM Abonos_notas WHERE chalan=? AND estado=1', [req.params.chalan], (err, rows) => {
+        if(err){
+            res.json(returnError('Error in DB Query'));
+        }
+        res.json(rows);
+    });
+
+    db.close();
+});
+
+
 // Ruta para crear un nuevo chalan
 app.post('/nuevo-chalan', jsonParser, (req, res) => {
     let query = `INSERT INTO Chalanes VALUES(null, ?, ?)`;
@@ -599,17 +615,13 @@ app.get('/abonos-compra/:id_compra', (req, res) => {
 // Ruta para crear una nuevo abono de compra
 app.post('/nuevo-abono-compra', jsonParser, (req, res) => {
     console.log('Abonando compra');
-    let query = `INSERT INTO Abonos_compras VALUES(null, ?, ?, ?) `;
+    let query = `INSERT INTO Abonos_compras VALUES(null, ?, ?, ?, ?) `;
     
 
-    let values = [req.body.purchase_id, req.body.monto_abono, req.body.fecha];
+    let values = [req.body.purchase_id, req.body.monto_abono, req.body.fecha, req.body.recibe];
     let err = insertItem(query, values);
 
     console.log("Error al guardar abono", err);
-    if(err === false){
-        console.log("si se va a generar ticket");
-        generateTicketAbono(req.body);
-    }
 
     let date = getCurrentDatetime();
 
@@ -623,6 +635,21 @@ app.post('/nuevo-abono-compra', jsonParser, (req, res) => {
         res.json({err});
     }
 });
+
+app.get('/abonos-notas-total', (req, res) => {
+    let query = 'SELECT SUM(abonado) as total_abonos_notas FROM Abonos_notas WHERE fecha = ? AND estado=0';
+    let dt = getCurrentDatetime();
+    let db = getDBConnection();
+
+    db.all(query, [dt], (err, rows) => {
+        if(err){
+            res.json(returnError('Error in DB Query'));
+        }
+        console.log(rows);
+        res.json(rows[0]);
+    });
+    db.close();
+})
 
 
 
@@ -839,8 +866,8 @@ app.post('/nuevo-pedido', jsonParser, async (req, res) => {
 
 app.post('/abono-nota', jsonParser, (req, res) => {
     console.log('pagando pedido');
-    let query = `INSERT INTO Abonos_notas VALUES(null, ?, ?, ?, ?, ?, ?, ?)`;
-    let values = [req.body.id_pedido, req.body.id_cliente, req.body.adeudo, req.body.abonado, req.body.fecha, req.body.estado, req.body.chalan];
+    let query = `INSERT INTO Abonos_notas VALUES(null, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+    let values = [req.body.id_pedido, req.body.id_cliente, req.body.adeudo, req.body.abonado, req.body.fecha, req.body.estado, req.body.chalan, req.body.cajero, req.body.cantidad_productos];
 
     let db = getDBConnection();
     let error = false;
@@ -852,7 +879,6 @@ app.post('/abono-nota', jsonParser, (req, res) => {
             console.log(err.message);
             // return console.log(err.message);
         }
-
         
         if(Number(req.body.restante) === 0 && req.body.estado === 0){
             console.log('Se pago el total de la nota');
@@ -862,12 +888,14 @@ app.post('/abono-nota', jsonParser, (req, res) => {
                     console.log(err2.message);
                     // return console.log(err.message);
                 }
-        
+                generateTicketAbono(req.body);
                 db.close();
                 res.json({error, error2});
             });
         }      
-        else{
+        else{    
+            console.log("si se va a generar ticket");
+            generateTicketAbono(req.body);
             db.close();
             res.json({error});
         }  
@@ -898,10 +926,31 @@ app.get('/abonos-nota/:id_pedido', (req, res) => {
     });
 });
 
+app.post('/eliminar-abono-nota', jsonParser, (req, res) => {
+    console.log('eliminando abono nota');
+    let query = `DELETE FROM Abonos_notas WHERE id=?`;
+    let values = [req.body.id_abono];
+
+    let db = getDBConnection();
+    let error = false;
+
+    db.run(query, values, function(err) {
+        if (err) {
+            error = true;
+            console.log(err.message);
+            // return console.log(err.message);
+        }
+
+        db.close();
+        res.json({error});
+         
+    });
+});
+
 app.post('/pagar-abono-nota', jsonParser, (req, res) => {
     console.log('pagando abono nota');
-    let query = `UPDATE Abonos_notas SET abonado=?, estado=0, chalan='' WHERE id=?`;
-    let values = [req.body.abonado, req.body.id_abono];
+    let query = `UPDATE Abonos_notas SET abonado=?, estado=0, chalan='', cajero=? WHERE id=?`;
+    let values = [req.body.abonado, req.body.cajero, req.body.id_abono];
 
     let db = getDBConnection();
     let error = false;
@@ -1045,10 +1094,10 @@ app.post('/pagar-pedido', jsonParser, (req, res) => {
 });
 
 // Ruta para pagar todo el pce de un chalan
-app.post('/pagar-pce-chalan', jsonParser, (req, res) => {  
-    console.log('pagando pedido');
-    let query = `UPDATE Pedidos set estado = 1, enviado = 0, adeudo=0, chalan="", fecha_pago=?, cajero=? WHERE chalan = ?`;
-    let values = [getCurrentDatetime(), req.body.cajero, req.body.chalan];
+app.post('/pagar-apc-chalan', jsonParser, (req, res) => {  
+    console.log('pagando apc chalan');
+    let query = `UPDATE Abonos_notas set estado = 0, chalan="", cajero=? WHERE chalan = ?`;
+    let values = [req.body.cajero, req.body.chalan];
 
     let db = getDBConnection();
     let error = false;
@@ -1496,6 +1545,9 @@ function generateTicket(order){
     // Obtiene la hora y fecha actual
     let dt = getFullDateTime();
 
+    let dt_split = dt.split(" ");
+    dt = dt_split[0] + " Hora: "+ dt_split[1];
+
     // Genera el total a pagar en cada producto
     function getTotal(products){
         let total = 0;
@@ -1535,7 +1587,7 @@ function generateTicket(order){
     
     // Escribe el nombre del negocio y fecha-hora en el pdf
     doc.text(nombre_negocio, 16, 2);
-    doc.text(dt, 23, 6);
+    doc.text(dt, 21, 6);
     
     // Escribe la fecha de la nota en el pdf
     doc.setFont("helvetica", "normal");
@@ -1622,6 +1674,8 @@ function generateTicket(order){
         doc.text('$'+ String(producto.precio_kg.toFixed(2)), 40, current_y);
         doc.text('$'+ String( (producto.precio_kg * producto.cantidad_kg).toFixed(2)), 52, current_y);
     });
+
+    let cantidad_productos = order.productos.length;
     
     
     current_y += 4;
@@ -1656,11 +1710,19 @@ function generateTicket(order){
     doc.setFont("helvetica", "bold");
     doc.text('$'+cambio, 21, current_y);
     
+
+    current_y += 6;
+    
+    // Escribe el total de productos
+    doc.setFont("helvetica", "normal");
+    doc.text('Cantidad de productos: '+ cantidad_productos, 20, current_y);
+
     current_y += 4;
     
     // Escribe el mensaje de agradecimiento en el pdf
     doc.setFont("helvetica", "bold");
     doc.text('Gracias por su compra', 21, current_y);
+
     
     // Guarda el ticket
     doc.save("ticket.pdf");
@@ -1685,76 +1747,140 @@ function generateTicket(order){
 // el cual contiene toda la informacion para la impresion
 // del ticket
 function generateTicketAbono(abono){
-    console.log('Generando ticket abono');
+    //-Ticket abono debe decir id nota, chalan, cliente, deuda actual y cantidad del abono
+    //-agregar cuenta cuenta de productos al final del ticket
 
-    // Nombre del negocio
-    let nombre_negocio = 'Aguacates y papayas cynthia';
-    // Obtiene la hora y fecha actual
-    let dt = getFullDateTime();
+    console.log('Generando ticket abono nota');
 
+    //Obtiene deuda del cliente
 
-    
-    // Crea un objeto jsPDF para generar el ticket (pdf)
-    const doc = new jsPDF.jsPDF({
-        orientation: "portrait",
-        unit: "mm",
-        format: [80, 290]
-    });
-    
-    // Varuable para cambiar el valor de y en el pdf
-    let current_y = 0;
-    
-    // Cambia el tamaño de la tipografia
-    doc.setFontSize(10);
-    
-    // Escribe el nombre del negocio y fecha-hora en el pdf
-    doc.text(nombre_negocio, 16, 2);
-    doc.text(dt, 23, 6);
-    
-    // Escribe la fecha de la nota en el pdf
-    doc.setFont("helvetica", "normal");
-    doc.text('Fecha de abono:', 15, 14);
-    doc.setFont("helvetica", "bold");
-    doc.text(abono.fecha, 42, 14);
-    
-    current_y = 24;
-
-    
-    // Escribe el estado de la nota en el pdf
-    doc.setFontSize(20);
-    doc.setFont("helvetica", "bold");
-    doc.text('ABONO', 24, current_y);
-    
-    
-    current_y += 8;
-    
-    // Escribe el total en el PDF
-    doc.setFont("helvetica", "bold");
-    doc.text('$'+abono.monto_abono, 32, current_y);
-    
-    doc.setFontSize(8);
-    current_y += 10;
-    
-    // Escribe el mensaje de agradecimiento en el pdf
-    doc.setFont("helvetica", "bold");
-    doc.text('Gracias por su compra', 21, current_y);
-    
-    // Guarda el ticket
-    doc.save("ticket_abono.pdf");
-    console.log('Ticket nuevo generado!');
-    
-
-    // Ejecuta comando para imprimir el ticket generado
-    exec('PDFtoPrinter.exe ticket_abono.pdf', (error, stdout, stderr) => {
-        if (error) {
-            console.log(`error: ${error.message}`);
-            return;
+    let db = getDBConnection();
+    db.all('SELECT SUM(adeudo) as deuda_cliente FROM Pedidos WHERE id_cliente = ?', [abono.id_cliente] , (err, rows) => {
+        
+        if(err){
+            res.json(returnError('Error in DB query'));
+            db.close();
+            // throw(err);            
         }
-        if (stderr) {
-            console.log(`stderr: ${stderr}`);
-            return;
-        }
-        console.log(`stdout: ${stdout}`);
+
+        console.log(rows);
+         // Aqui es donde se va a imprimir el ticket
+        obtenerTotalAbonado(null, function(abonado){
+            console.log(rows, abonado);
+            let deuda = 0;
+            if(rows){
+                if(rows.length === 1){
+                    deuda = rows[0].deuda_cliente - abonado;
+                }
+            }            
+            // Nombre del negocio
+            let nombre_negocio = 'Aguacates y papayas cynthia';
+            // Obtiene la hora y fecha actual
+            let dt = getFullDateTime();
+
+            let dt_split = dt.split(" ");
+            dt = dt_split[0] + " Hora: "+ dt_split[1];
+            
+            // Crea un objeto jsPDF para generar el ticket (pdf)
+            const doc = new jsPDF.jsPDF({
+                orientation: "portrait",
+                unit: "mm",
+                format: [80, 290]
+            });
+            
+            // Varuable para cambiar el valor de y en el pdf
+            let current_y = 0;
+            
+            // Cambia el tamaño de la tipografia
+            doc.setFontSize(10);
+            
+            // Escribe el nombre del negocio y fecha-hora en el pdf
+            doc.text(nombre_negocio, 16, 2);
+            doc.text(dt, 23, 6);
+            
+            // Escribe la fecha de la nota en el pdf
+            doc.setFont("helvetica", "normal");
+            doc.text('Fecha de abono:', 15, 14);
+            doc.setFont("helvetica", "bold");
+            doc.text(abono.fecha, 42, 14);
+
+            // Escribe el id de la nota
+            doc.setFont("helvetica", "normal");
+            doc.text('Id nota:', 10, 20);
+            doc.setFont("helvetica", "bold");
+            doc.text(String(abono.id_pedido), 25, 20);
+
+            // Escribe el id de la nota
+            let chalan = 'NA';
+            if(abono.chalan){
+                chalan = abono.chalan.split(',')[1];
+            }
+
+            doc.setFont("helvetica", "normal");
+            doc.text('Chalan:', 35, 20);
+            doc.setFont("helvetica", "bold");
+            doc.text(chalan, 50, 20);
+            
+
+            doc.setFont("helvetica", "normal");
+            doc.text('Cliente:', 10, 26);
+            doc.setFont("helvetica", "bold");
+            doc.text(abono.nombre_cliente, 25, 26);
+
+            doc.setFont("helvetica", "normal");
+            doc.text('Deuda:', 35, 26);
+            doc.setFont("helvetica", "bold");
+            doc.text('$'+deuda, 50, 26);
+
+            current_y = 40;
+            
+            // Escribe el estado de la nota en el pdf
+            doc.setFontSize(20);
+            doc.setFont("helvetica", "bold");
+            doc.text('ABONO', 24, current_y);
+            
+            
+            current_y += 8;
+            
+            // Escribe el total en el PDF
+            doc.setFont("helvetica", "bold");
+            doc.text('$'+abono.abonado, 32, current_y);
+            
+            doc.setFontSize(8);
+            current_y += 10;
+
+            
+            // Escribe el total de productos
+            doc.setFont("helvetica", "normal");
+            doc.text('Cantidad de productos: '+ abono.cantidad_productos, 20, current_y);
+
+            current_y += 4;
+
+            // Escribe el mensaje de agradecimiento en el pdf
+            doc.setFont("helvetica", "bold");
+            doc.text('Gracias por su abono', 21, current_y);
+
+
+            
+            // Guarda el ticket
+            doc.save("ticket_abono.pdf");
+            console.log('Ticket nuevo generado!');
+            
+
+            // Ejecuta comando para imprimir el ticket generado
+            exec('PDFtoPrinter.exe ticket_abono.pdf', (error, stdout, stderr) => {
+                if (error) {
+                    console.log(`error: ${error.message}`);
+                    return;
+                }
+                if (stderr) {
+                    console.log(`stderr: ${stderr}`);
+                    return;
+                }
+                console.log(`stdout: ${stdout}`);
+            });
+        }, abono.id_cliente);
+        
     });
 }
 

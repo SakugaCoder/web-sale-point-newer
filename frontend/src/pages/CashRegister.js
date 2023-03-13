@@ -93,6 +93,7 @@ export default function Suppliers(){
     const [ detalleCaja, setDetalleCaja ] = useState(null);
     const [ currentDetalleCaja, setCurrentDetalleCaja ] = useState(null);
     const [ sumatoria, setSumatoria ] = useState(null);
+    const [ abonosCompras, setAbonosCompras ] = useState();
 
 
     const fields = ['Nombre', 'Eliminar', 'Modificar'];
@@ -101,10 +102,13 @@ export default function Suppliers(){
         let res = await getItems('proveedores');
         let res_cash_register = await getItems('estado-caja');
         let res_cash_register_records = await getItems('cierres-caja');
+        res_cash_register_records.cierres_caja.shift();
         let res_withdrawals = await getItems('retiros');
+        let res_abonos_compras = await getItems('abonos-notas-total')
         console.log(res_cash_register_records.cierres_caja);
         setCashRegisterRecords(res_cash_register_records.cierres_caja);
         setWithdrawals(res_withdrawals);
+        setAbonosCompras(res_abonos_compras);
 
         if(res.err !== true){
             setTableData(res);
@@ -117,7 +121,7 @@ export default function Suppliers(){
                 setCashRegisterStatus(
                     {...res_cash_register,
                         retiros: res_cash_register.retiros ? res_cash_register.retiros : 0,
-                        ingresos: res_cash_register.ingresos ? res_cash_register.ingresos : 0
+                        ingresos: res_cash_register.ingresos ? res_cash_register.ingresos + (res_abonos_compras.total_abonos_notas ? res_abonos_compras.total_abonos_notas : 0) : 0 + (res_abonos_compras.total_abonos_notas ? res_abonos_compras.total_abonos_notas : 0),
                     });
             }
         }
@@ -274,8 +278,8 @@ export default function Suppliers(){
                 <input type='hidden' value={retiros} name='retiros' />
                 <input type='hidden' value={ingresos} name='ingresos' />
                 <div className="modal-buttons">
-                    <Button className="bg-red" type='submit'>SI, CERRAR CAJA</Button>
-                    <Button className="bg-white" onClick={ handleModalClose }>CANCELAR</Button>
+                    <Button className="bg-primary" type='submit'>SI, CERRAR CAJA</Button>
+                    <Button className="bg-red" onClick={ handleModalClose }>CANCELAR</Button>
                 </div>
             </form>
         </div>
@@ -349,19 +353,36 @@ export default function Suppliers(){
         return 
     };
 
-    const openDetailModal = item =>{
+    const openDetailModal = (item, first_cash_register)=>{
+        console.log(item, "Detalle retiros");
         // setModalState({visible: true, content: detailModal(item)});
         setCajaModalState({visible: true});
-        obtenerDetalleCaja(item.fecha);
-        setCurrentDetalleCaja(item);
+        if(first_cash_register){
+            obtenerDetalleCaja(item.caja.fecha);
+            setCurrentDetalleCaja({...item, fecha: item.caja.fecha});
+        }
+        else{
+            obtenerDetalleCaja(item.fecha);
+            setCurrentDetalleCaja(item);
+    
+        }
+        
         console.log(item);
     }
 
-    const openProductDetailModal = item => {
+    const openProductDetailModal = (item, first_cash_register) => {
         console.log('abrir detalle venta');
-        obtenerSumatoriaProductos(item.fecha);
+        if(first_cash_register){
+            setCurrentDetalleCaja({...item, fecha: item.caja.fecha});
+            obtenerSumatoriaProductos(item.caja.fecha);
+        }
+        else{
+            setCurrentDetalleCaja(item);
+            obtenerSumatoriaProductos(item.fecha);
+        }
+        
         setProductosModalState({visible: true});
-        setCurrentDetalleCaja(item);
+        
     }
 
     const openConfirmationModal = data => {
@@ -381,6 +402,7 @@ export default function Suppliers(){
     };
 
     const openSingleCashRegisterModal = (date, total, retiros, ingresos) =>{
+        console.log(date, total, retiros, ingresos);
         setModalState({visible: true, content: closeSingleCashRegisterModal(date, total, retiros, ingresos)});
     }
 
@@ -444,7 +466,19 @@ export default function Suppliers(){
                             </thead>
 
                             <tbody>
-                            { cashRegisterRecords ? 
+                            { cashRegisterRecords ? (
+                                <>
+                                <tr key={0}>
+                                    <td>{ cashRegisterStatus ? cashRegisterStatus.caja.fecha : null}</td>
+                                    <td>${ cashRegisterStatus ? cashRegisterStatus.caja.fondo.toFixed(2) : null}</td>
+                                    <td>${ cashRegisterStatus ? cashRegisterStatus.ingresos.toFixed(2) : null}</td>
+                                    <td>${ cashRegisterStatus ? cashRegisterStatus.retiros.toFixed(2) : null}</td>
+                                    <td>${ cashRegisterStatus ? (cashRegisterStatus.ingresos - cashRegisterStatus.retiros + cashRegisterStatus.caja.fondo).toFixed(2) : null}</td>
+                                    {/* <td>{ item.cajero }</td> */}
+                                    <td style={ {display: 'flex'} }><Button className="bg-blue" onClick={ () => openDetailModal(cashRegisterStatus, true) }>Detalle Retiros</Button> <Button className="bg-light-blue" onClick={ () => openProductDetailModal(cashRegisterStatus, true) } ml>Detalle venta</Button> { cashRegisterStatus.caja.estado === 'abierta' && localStorage.getItem('sp_rol') === '1' ? <Button className="bg-red" ml onClick={ () => openSingleCashRegisterModal(cashRegisterStatus.caja.fecha, roundNumber( (cashRegisterStatus.caja.fondo + cashRegisterStatus.ingresos) - cashRegisterStatus.retiros), roundNumber(cashRegisterStatus.retiros), roundNumber(cashRegisterStatus.ingresos))}>Cerrar caja</Button> : null}</td>
+                                </tr>
+
+                                {
                                     cashRegisterRecords.filter( item => {
                                             // Filter by date
                                             if(filters.fecha)
@@ -462,6 +496,10 @@ export default function Suppliers(){
                                         <td style={ {display: 'flex'} }><Button className="bg-blue" onClick={ () => openDetailModal(item) }>Detalle Retiros</Button> <Button className="bg-light-blue" onClick={ () => openProductDetailModal(item) } ml>Detalle venta</Button> { item.estado === 'abierta' && localStorage.getItem('sp_rol') === '1' ? <Button className="bg-red" ml onClick={ () => openSingleCashRegisterModal(item.fecha, roundNumber( (item.fondo + item.SumaIngresos) - item.SumaRetiros), roundNumber(item.SumaRetiros), roundNumber(item.SumaIngresos))}>Cerrar caja</Button> : null}</td>
                                     </tr>
                                 })
+
+                                }
+                                </>
+                            )
                             : null}
                             </tbody>
                         </StyledTable>

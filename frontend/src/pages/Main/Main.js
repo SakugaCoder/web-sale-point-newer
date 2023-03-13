@@ -83,7 +83,7 @@ const CustomerDataItemBascula = styled.div`
     flex-direction: row;
     justify-content: space-around;
     width: 100%;
-    background: #26C485;
+    background-color: #26C485;
     padding: 10px;
     border-radius: 10px;
     margin-left: 10px;
@@ -100,6 +100,11 @@ const CustomerDataItemBascula = styled.div`
     & > strong{
         width: 100%;
         text-align:center;
+    }
+
+    label{
+        padding: 5px;
+        border-radius: 5px;
     }
 `;
 
@@ -271,6 +276,7 @@ export default function Main(){
     const [ finalKg, setFinalKg ] = useState(0);
     const [ currentKg, setCurrentKg] = useState(0);
     const [ scaleWeights, setScaleWeights] = useState({b1: 0, b2:0, b3:0});
+    const [ scale, setCurrentScale ] = useState(null);
     const [ contraEntrega, setContraEntrega ] = useState(false);
     const [ cashRegister, setCashRegister ] = useState(null);
     const [ paymentError, setPaymentError ]  = useState('');
@@ -491,9 +497,12 @@ export default function Main(){
         setErrorMsj('');
         evt.preventDefault();
         let kg = Number(evt.target.kg.value);
-        let net_weight = Number(evt.target.net_weight.value);
+        let net_weight = null;
+        if(evt.target.net_weight){
+            net_weight = Number(evt.target.net_weight.value);
+        }
         
-        if(net_weight <= 0){
+        if(net_weight <= 0 && item_data.venta_por === 'kg'){
             setErrorMsj("Error. El valor de la tara no puede ser mayor al peso.");
             return null;
         }
@@ -598,7 +607,7 @@ export default function Main(){
     const openProductModal = product_data => {
         setCurrentProduct(product_data);
         if(currentClient){
-            if(currentKg > 0){
+            if(currentKg > 0 || product_data.venta_por === 'pza'){
                 
                 console.log(product_data);
                 if(product_data.venta_por === 'kg'){
@@ -769,10 +778,6 @@ export default function Main(){
         return roundNumber(Number(net_weight) * Number(product_price));
     }
 
-    const getTotalCostPza = () => {
-
-    }
-
 
     const clearProductModal = () =>{
         setKgPrice('');
@@ -786,6 +791,7 @@ export default function Main(){
         let scale_selected = evt.target.value;
         let scale_weight = scaleWeights[scale_selected];
         setCurrentKg(scale_weight);
+        setCurrentScale(scale_selected);
         console.log(scale_weight);
         if(scale_weight === 0){
             setModalState({visible: true, content: alertModal("El peso no puede ser 0, verifique su bascula") });
@@ -837,7 +843,7 @@ export default function Main(){
 
                         </CustomerData>
                         <CustomerDataItemBascula>  
-                                <label htmlFor="b1">
+                                <label htmlFor="b1" className="b-label-1" style={ {backgroundColor: scale === 'b1' ? '#048BA8': 'transparent' } }>
                                     <BasculaInfo>
                                         <input type='radio' name="selected-scale" value="b1" id="b1" onChange={ changeScale }/>
                                         <p>B1:</p>
@@ -845,7 +851,7 @@ export default function Main(){
                                     </BasculaInfo>
                                 </label>
 
-                                <label htmlFor="b2">
+                                <label htmlFor="b2" className="b-label-2" style={ {backgroundColor: scale === 'b2' ? '#048BA8': 'transparent' } }>
                                     <BasculaInfo>
                                         <input type='radio' name="selected-scale" value="b2" id="b2" onChange={ changeScale }/>
                                         <p>B2:</p>
@@ -853,7 +859,7 @@ export default function Main(){
                                     </BasculaInfo>
                                 </label>
 
-                                <label htmlFor="b3">
+                                <label htmlFor="b3" className="b-label-3" style={ {backgroundColor: scale === 'b3' ? '#048BA8': 'transparent' } }>
                                     <BasculaInfo>
                                     <input type='radio' name="selected-scale" value="b3" id="b3" onChange={ changeScale }/>
                                         <p>B3:</p>
@@ -974,17 +980,17 @@ export default function Main(){
                                     <tbody>
                                         <tr>
                                             <td><h3>Precio x {currentProduct.venta_por}</h3></td>
-                                            <td><input type='text'  placeholder={currentProduct.price} value={pzaPrice} onChange={ (event) => handleKeyboard(event, pzaPrice, setPzaPrice) } defaultValue={currentProduct.precio} onFocus={ () => setCurrentInputState('pzaPrice') }></input></td>
+                                            <td><input type='text'  placeholder={currentProduct.price} value={pzaPrice ? pzaPrice : currentProduct.price} onChange={ (event) => handleKeyboard(event, pzaPrice, setPzaPrice) } defaultValue={currentProduct.precio} onFocus={ () => setCurrentInputState('pzaPrice') }></input></td>
                                         </tr>
 
                                         <tr>
                                             <td><h3>Piezas</h3></td>
-                                            <td><input type='text' name={'kg'} value={pzaQty} onChange={ (event) => handleKeyboard(event, pzaQty, setPzaQty) } defaultValue={1} onFocus={ () => setCurrentInputState('pzaQty') }></input></td>
+                                            <td><input type='text' name={'kg'} placeholder={0} value={pzaQty} onChange={ (event) => handleKeyboard(event, pzaQty, setPzaQty) } defaultValue={1} onFocus={ () => setCurrentInputState('pzaQty') }></input></td>
                                         </tr>
 
                                         <tr>
                                             <td><h3>Total</h3></td>
-                                            <td><p>$ { getTotalCostPza(currentProduct.price) } </p></td>
+                                            <td><p>$ { pzaPrice ? ( pzaQty * pzaPrice) : currentProduct.price * pzaQty} </p></td>
                                         </tr>
                                     </tbody>
                                 </table>
@@ -992,12 +998,10 @@ export default function Main(){
 
                             <Keypad currentNumber={currentNumber} setCurrentNumber={ (val, backspace) => { setCurrentNumber(val); addValueToInput(val, backspace); setErrorMsj('') }} />
 
-
-
                             <ModalButtons>
-                                    <Button type='button' className="bg-red" onClick={ () => { handleProductModalClose(); setCurrentNumber(''); setErrorMsj(''); clearProductModal(); } }>Cancelar</Button>
-                                    {/* <Button className="bg-blue ml" type='button' onClick={ () => { setFinalKg(finalKg+currentKg)} }>Agregar peso</Button> */}
-                                    <Button type='submit' className="ml bg-primary">Guardar</Button>
+                                <Button type='submit' className="bg-primary">Guardar</Button>
+                                    <Button type='button' className="ml bg-red" onClick={ () => { handleProductModalClose(); setCurrentNumber(''); setErrorMsj(''); clearProductModal(); } }>Cancelar</Button>
+                                    {/* <Button className="bg-blue ml" type='button' onClick={ () => { setFinalKg(finalKg+currentKg)} }>Agregar peso</Button> */}    
                             </ModalButtons>
 
                             {

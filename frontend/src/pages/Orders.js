@@ -19,21 +19,23 @@ const StyledTable = styled.table`
     border-collapse: collapse;
     border: 1px solid black;
     width: 100%;
-    font-size: 20px;
+    font-size: 16px;
 
     tbody tr:nth-child(even) {
         background-color: #eee;
     }
 
     td{
-        padding: 2px;
+        padding: 5px;
+    }
+    th{
+        padding: 5px;
     }
       
-    thead tr th {
+    thead tr {
         background-color: #26C485;
         color: #000;
         text-align: left;
-        padding: 2px;
     }
 `;
 
@@ -124,10 +126,10 @@ const PaymentAmount = styled.p`
 const ActionButton = styled.button`
     display: block;
     border: solid 1px #000;
-    font-weight: 700;
-    font-size: 18px;
+    font-weight: 600;
+    font-size: 14px;
     text-transform: uppercase;
-    padding: 18px 8px;
+    padding: 12px 4px;
     border-radius: 5px;
 
     ${props => props.ml ? 'margin-left: 5px;' : ''}
@@ -216,6 +218,19 @@ export default function Pedidos(){
                 // console.log(abonos);
             }
         };
+
+        for(let nota of notas){
+            if(nota.abonos){
+                if(nota.abonos.detalle_abonos){
+                    nota.abonos.detalle_abonos.forEach(abono => {
+                        if(abono.estado === 1){
+                            nota.chalan_abono = abono.chalan;
+                            console.log(abono);
+                        }
+                    });
+                }
+            }
+        }
         console.log(notas);
         setTableData(notas);
         setOrders(notas) 
@@ -231,6 +246,49 @@ export default function Pedidos(){
 
     const openDetailModal = order_data => {
         setModalState({visible: true, content: detailModal(order_data)});
+    };
+
+    const abonosDetalleModal = item_data => {
+        return <div className="product-card-modal">
+    
+            <h2>Detalle abonos nota</h2>
+    
+                { item_data ? 
+    
+                    <div style={ { overflowX: 'auto', marginTop: 20}}>
+    
+                        <StyledTable>
+                            <thead>
+                                <tr>
+                                    <td>Fecha</td>
+                                    <td>Chalan</td>
+                                    <td>Cantidad</td>
+                                    <td>Cajero</td>
+                                </tr>
+                            </thead>
+    
+                            <tbody>
+                                { 
+                                item_data.abonos.detalle_abonos.map( (item, index) => {
+                                        return <tr key={index}>
+                                            
+                                            <td>{ item.fecha }</td>
+                                            <td>{ item.chalan }</td>
+                                            <td>${ item.abonado }</td>
+                                            <td>{ item.cajero }</td>
+                                        </tr>
+                                    })
+                                }
+                            </tbody>
+                        </StyledTable>
+                    </div>
+                : null}
+            <ActionButton type='close' className='bg-white' style={ {marginTop: 20} } onClick={ handleModalClose }>Cerrar</ActionButton>
+        </div>
+    };    
+
+    const openAbonosDetalleModal = order_data => {
+        setModalState({visible: true, content: abonosDetalleModal(order_data)});
     };
 
     const payOrder = async order => {
@@ -249,7 +307,7 @@ export default function Pedidos(){
             let res = await SP_API('http://localhost:3002/pagar-pedido', 'POST', data); 
             console.log(res);
 
-            let nuevo_pedido_detalle = await SP_API('http://localhost:3002/pedido-detalle/' + order.id, 'GET', );
+            let nuevo_pedido_detalle = await SP_API('http://localhost:3002/pedido-detalle/' + order.id, 'GET',);
             if(nuevo_pedido_detalle.length === 1){
                 console.log(nuevo_pedido_detalle);
 
@@ -447,7 +505,7 @@ export default function Pedidos(){
             </OrderDetail>
         </OrderDetailContainer>
 
-        <Button className="bg-white" type='submit' onClick={ handleModalClose }>Cerrar</Button>
+        <ActionButton className="bg-white" type='submit' onClick={ handleModalClose }>Cerrar</ActionButton>
     </div>
     };
 
@@ -511,7 +569,7 @@ export default function Pedidos(){
         });
     }
 
-    async function pagarPCEChalan(){
+    async function pagarAPCchalan(){
 
         let data = {
             chalan: filters.chalan,
@@ -521,7 +579,7 @@ export default function Pedidos(){
         console.log(data);
 
         try {
-            let res = await SP_API('http://localhost:3002/pagar-pce-chalan', 'POST', data); 
+            let res = await SP_API('http://localhost:3002/pagar-apc-chalan', 'POST', data); 
                     
             if(res.error === false){
                 initialFunction();
@@ -539,6 +597,13 @@ export default function Pedidos(){
         evt.preventDefault();
         setErrorMsj('');
 
+        console.log(order);
+
+        if(Number(evt.target.restante.value) < 0){
+            setErrorMsj('Error. El abono no puede superar la deuda');
+            return null;
+        }
+
         if(Number(evt.target.abono.value) > 0){
             let data = {
                 id_pedido: order.id,
@@ -548,7 +613,10 @@ export default function Pedidos(){
                 estado: 0,
                 chalan: null,
                 fecha: evt.target.fecha.value,
-                restante: evt.target.restante.value
+                restante: evt.target.restante.value,
+                cajero: localStorage.getItem('username'),
+                cantidad_productos: order.productos.split(",").length,
+                nombre_cliente: order.nombre_cliente,
             };
     
             
@@ -586,16 +654,23 @@ export default function Pedidos(){
         evt.preventDefault();
         let pago_abono = evt.target.pago_abono.value;
         let id_abono = evt.target.id_abono.value;
-        console.log(pago_abono);
+        console.log(pago_abono, evt.target.restante.value);
 
         setErrorMsj('');
+
+        if(Number(evt.target.restante.value) <= 0){
+            setErrorMsj('Error. El pago no puede superar la deuda');
+            return null;
+        }
+
 
         if(Number(evt.target.pago_abono.value) > 0){
             let data = {
                 id_abono,
                 abonado: pago_abono,
                 restante: evt.target.restante.value,
-                id_pedido: nota.id
+                id_pedido: nota.id,
+                cajero: localStorage.getItem('username')
             };
     
             console.log(data);
@@ -642,9 +717,67 @@ export default function Pedidos(){
     };
 
     const getAPCButtons = (abonos, nota) => {
-        let apc_buttons = (abonos.filter(abono => abono.estado === 1)).map( abono => <ActionButton style={ {minWidth: '50px'} } className="bg-red" medium onClick={ () => { setAPCModalState({...APCModalState, visible: true, id_abono: abono.id}); setCurrentOrder(nota); setCurrentNumber(''+abono.abonado) }}>${abono.abonado} ({abono.chalan.split(',')[1]})</ActionButton>);
+        let apc_buttons = (abonos.filter(abono => abono.estado === 1)).map( abono => <ActionButton style={ {minWidth: '50px'} } className="bg-red" medium onClick={ () => { setAPCModalState({...APCModalState, visible: true, id_abono: abono.id, chalan: abono.chalan}); console.log(nota); setCurrentOrder(nota); setCurrentNumber(''+abono.abonado) }}>${abono.abonado} ({abono.chalan.split(',')[1]})</ActionButton>);
         return <div style={ {display: 'flex', justifyContent: 'space-between'} }>{ apc_buttons} </div>;
     };
+
+    const itemHasAPC = item => {
+        let item_has_APC = false;
+        if(item.abonos){
+            if(item.abonos.detalle_abonos){
+                item.abonos.detalle_abonos.map( abono => {
+                    if(abono.estado === 1){
+                        item_has_APC = true;
+                    }
+                });
+            }
+        }
+        return item_has_APC;
+    }
+
+    const cancelAPC = async APC_id => {
+        try {
+            let res = await SP_API('http://localhost:3002/eliminar-abono-nota', 'POST', {id_abono: APC_id}); 
+                    
+            if(res.error === false){
+                // initialFunction();
+                window.location.reload();
+            }
+
+            else{
+                alert('Error al eliminar abono nota');
+            }   
+        } catch (error) {
+            console.log(error);
+        }
+        console.log(APC_id);
+    }
+
+    const confirmationModal = pago_total_chalan => {
+        return <div className="product-card-modal">
+
+        <p style={ {fontSize: 24}}>Confirma recibir pago total del chalan <strong style={ {fontSize: 24}}>{ filters.chalan.split(',')[1] }</strong> por la cantidad de <strong style={ {fontSize: 24}}>${pago_total_chalan}</strong></p>
+
+        <form className="modal-form" onSubmit={  event => pagarAPCchalan() }>
+            <div className="modal-buttons">
+                <Button className="bg-primary" type='submit' >Confirmar</Button>
+                <Button className="bg-red" onClick={ handleModalClose }>Cancelar</Button>
+            </div>
+        </form>
+    </div>
+    };
+
+    const abrirModalConfirmacionAPC = async () => {
+        let pago_total_chalan = await SP_API('http://localhost:3002/' + "pago-total-chalan/"+filters.chalan, "GET");
+        console.log(pago_total_chalan);
+        if(pago_total_chalan){
+            if(pago_total_chalan.length === 1){
+                if(pago_total_chalan[0].pago_total_chalan){
+                    setModalState({visible: true, content: confirmationModal(pago_total_chalan[0].pago_total_chalan)});
+                }
+            }
+        }
+    }
 
     return(
         <Layout active='Notas'>
@@ -653,7 +786,7 @@ export default function Pedidos(){
                     <h2>LISTA DE NOTAS</h2>
                     <Button className='bg-red' onClick={ () => window.location.reload() }>REINICIAR FILTROS</Button>
                 </div>
-                { filters ? (filters.chalan.length > 1 && filters.estado == 4 ? <Button className="bg-light-blue" onClick={ pagarPCEChalan}>RECIBIR PAGO TOTAL DE CHALAN</Button>: null) : null}
+                { filters ? (filters.chalan.length > 1  ? <Button className="bg-light-blue" onClick={ abrirModalConfirmacionAPC }>RECIBIR PAGO TOTAL DE CHALAN</Button>: null) : null}
 
                 <div style={ { overflowX: 'auto', marginTop: 20}}>
                     { clientDebt  || clientDebt >= 0? <p style={ {fontSize: 24, marginTop: 0} }>Deuda total de { filters.cliente.split(',')[1]}  = <strong>${ roundNumber(clientDebt) }</strong></p>: null }
@@ -669,12 +802,11 @@ export default function Pedidos(){
                                         { clients ? clients.map( cliente => <option value={cliente.id + ',' + cliente.nombre}>{ cliente.nombre}</option>) : null };
                                     </select></td>
                                 <td>
-                                    <select name="chalan" style={ {padding: 10, fontSize: '16px'} } onChange={ (event) => setFilters({...filters, chalan: event.target.value }) } >
+                                    <select name="chalan" style={ {padding: 10, fontSize: '16px'} } onChange={ (event) => { setFilters({...filters, chalan: event.target.value });  } } >
                                         <option value='0'>Chalan</option>
                                         { chalanes ? chalanes.map( chalan => <option value={chalan.id + ',' + chalan.nombre}>{ chalan.nombre}</option>) : null };
                                     </select>
                                 </td>
-                                <td>Total</td>
                                 <td>
                                     <select name="orden_pedidos" style={ {padding: 10, fontSize: '16px'} } onChange={ (event) => setFilters({...filters, estado: Number(event.target.value) }) }>
                                         <option value='0'>Estado</option>
@@ -683,10 +815,10 @@ export default function Pedidos(){
                                         <option value='2'>Adeudos</option>
                                     </select>
                                 </td>
+                                <td>Total</td>
                                 <td>Abonado</td>
                                 <td>Restante</td>
                                 <td>Acciones</td>
-                                <td>APC</td>
                             </tr>
                         </thead>
                         
@@ -696,9 +828,9 @@ export default function Pedidos(){
                                     return <tr key={index}>
                                         <td>{ item.fecha }</td>
                                         <td>{ item.id_cliente } - { item.nombre_cliente }</td>
-                                        <td><p> { item.chalan ? `${item.chalan.split(',')[0]} - ${item.chalan.split(',')[1]}` : null } </p> </td>
-                                        <td>{'$'+ roundNumber(item.total_pagar) }</td>
+                                        <td><p> { item.chalan_abono ? `${item.chalan_abono.split(',')[0]} - ${item.chalan_abono.split(',')[1]}` : null } </p> </td>
                                         <td>{ getOrderStatusLabel(item) }</td>
+                                        <td>{'$'+ roundNumber(item.total_pagar) }</td>
                                         <td>{ item.abonos ? (item.abonos.total_abonado ? '$'+item.abonos.total_abonado : '$0') : null}</td>
                                         <td>{ item.abonos ? (item.abonos.total_abonado ? '$'+ (item.adeudo - item.abonos.total_abonado): '$' + item.adeudo) : null}</td>
                                         <td>
@@ -706,11 +838,32 @@ export default function Pedidos(){
                                                 <ActionButton className="bg-primary" medium onClick={ () => openDetailModal(item) }>Detalle</ActionButton>
                                                 <ActionButton className="bg-light-blue" ml medium onClick={ () => printTicket(item) }>Ticket</ActionButton>
                                                 { estadoCaja.caja ?
-                                                <>{ estadoCaja.caja.estado === 'abierta' ? (item.estado === 2 || item.estado === 3 ? <> <ActionButton className="bg-blue" medium ml onClick={ () => { setPaymentModalState({visible: true}); setCurrentOrder(item); console.log(item.adeudo)  } }>Recibir abono</ActionButton> </> : (item.estado === 4 ? <><ActionButton className="bg-blue" onClick={ () => openEditModal(item) } medium ml>Recibir pago</ActionButton> { item.id_cliente !== 0 ? <ActionButton className="bg-red"  onClick={ () => openFiarModal(item) } medium ml>Fiar </ActionButton> :null }</>: null)) : null}</>
+                                                    <>
+                                                        { estadoCaja.caja.estado === 'abierta' ? 
+                                                            (item.estado === 2 || item.estado === 3 ? 
+                                                                <>
+                                                                    <ActionButton className="bg-white" medium ml onClick={ () => {  openAbonosDetalleModal(item);  } }>Abonos</ActionButton>
+                                                                    { itemHasAPC(item) === false ?
+                                                                    <ActionButton className="bg-blue" medium ml onClick={ () => { setPaymentModalState({visible: true}); setCurrentOrder(item); console.log(item.adeudo)  } }>Recibir abono</ActionButton>
+                                                                    : ( item.abonos ? (item.abonos.detalle_abonos ? getAPCButtons(item.abonos.detalle_abonos, item) : null) : null) }
+                                                                </> : 
+                                                                    (item.estado === 4 ?
+                                                                        <>
+                                                                        <ActionButton className="bg-blue" onClick={ () => openEditModal(item) } medium ml>Recibir pago</ActionButton>
+                                                                        { item.id_cliente !== 0 ? 
+                                                                            <ActionButton className="bg-red"  onClick={ () => openFiarModal(item) } medium ml>Fiar </ActionButton>
+                                                                            :null 
+                                                                        }
+                                                                        </>
+                                                                        : null
+                                                                    )
+                                                            )
+                                                             : null}
+                                                    </>
                                                 : null }
                                             </div>
                                         </td>
-                                        <td>{ item.abonos ? (item.abonos.detalle_abonos ? getAPCButtons(item.abonos.detalle_abonos, item) : null) : null} </td>
+                                        <td> </td>
                                     </tr> 
                                 })
                             : null ) }
@@ -719,7 +872,7 @@ export default function Pedidos(){
                 </div>
             </Container>
 
-            <Modal title='Mi titulo' visible={ modalState.visible }  handleModalClose={  handleModalClose } >
+            <Modal title='Custom modal' visible={ modalState.visible }  handleModalClose={  handleModalClose } >
                 { modalState.content }
             </Modal>
 
@@ -753,8 +906,10 @@ export default function Pedidos(){
             {/* APC modal */}
             <Modal title='APC modal' visible={ APCModalState.visible }  handleModalClose={ () => { handleAPCModalClose(); setCurrentNumber(''); setErrorMsj('');} } >
                 <ModalForm onSubmit={ event => pagarAbono(event, currentOrder) }>
-                    <Total>Deuda restante: <strong>$ { currentOrder ? ((currentOrder.abonos.total_abonado ? currentOrder.adeudo - currentOrder.abonos.total_abonado: currentOrder.adeudo) - (currentNumber ? currentNumber : 0)) : null} </strong></Total>
-                    <Total>Total de abono a pagar: <strong>$ { currentNumber ? currentNumber : '0'} </strong></Total>
+                    <Total>Cliente: <strong>{ currentOrder ? currentOrder.nombre_cliente : null }</strong></Total>
+                    <Total>Chalan: <strong>{ APCModalState ? (APCModalState.chalan ? APCModalState.chalan.split(',')[1] : null ) : null }</strong></Total>
+                    {/* <Total>Deuda restante: <strong>$ { currentOrder ? ((currentOrder.abonos.total_abonado ? currentOrder.adeudo - currentOrder.abonos.total_abonado: currentOrder.adeudo) - (currentNumber ? currentNumber : 0)) : null} </strong></Total> */}
+                    <Total>Abono a recibir: <strong>$ { currentNumber ? currentNumber : '0'} </strong></Total>
                     {/* <Change>Cambio: <strong> $ { currentOrder ? ((Number(currentNumber) - currentOrder.total_pagar ) > 0 ? (Number(currentNumber) - currentOrder.total_pagar ) : 0).toFixed(2) : 0} </strong></Change> */}
                     <PaymentAmount>${ currentNumber ? currentNumber : '0'}</PaymentAmount>
                     <p style={ {fontSize: 26, color: 'red', textAlign: 'center'} }>{ errorMsj } </p>
@@ -772,8 +927,10 @@ export default function Pedidos(){
 
                     
                     <ModalButtons>
-                        <Button type="submit" className="bg-primary">Pagar</Button>
-                        <Button type="button" className="bg-red" onClick={ () => { handleAPCModalClose(); setCurrentNumber(''); setErrorMsj('');} }>Cancelar</Button>
+                        <Button type="submit" className="bg-primary">Recibido</Button>
+                        <Button type="button" className="bg-red" onClick={ () => { handleAPCModalClose(); setCurrentNumber(''); setErrorMsj(''); cancelAPC(APCModalState ? APCModalState.id_abono: 0); } }>Cancelar abono</Button>
+                        <Button type="reset" className="bg-red"  onClick={ () => { handleAPCModalClose(); setCurrentNumber(''); setErrorMsj('');} }>Cancelar</Button>
+
                     </ModalButtons>
                 </ModalForm>
             </Modal>
