@@ -160,7 +160,7 @@ export default function Inventory(){
             <Container>
                 <h2>INVENTARIO</h2>
                 
-                <div style={ { overflowX: 'auto'}}>
+                <div style={ { overflowX: 'auto', overflowY: 'auto', maxHeight: '88vh'}}>
                     <StyledTable>
                         <thead>
                             <tr>

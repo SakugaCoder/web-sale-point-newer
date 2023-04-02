@@ -717,7 +717,7 @@ export default function Pedidos(){
     };
 
     const getAPCButtons = (abonos, nota) => {
-        let apc_buttons = (abonos.filter(abono => abono.estado === 1)).map( abono => <ActionButton style={ {minWidth: '50px'} } className="bg-red" medium onClick={ () => { setAPCModalState({...APCModalState, visible: true, id_abono: abono.id, chalan: abono.chalan}); console.log(nota); setCurrentOrder(nota); setCurrentNumber(''+abono.abonado) }}>${abono.abonado} ({abono.chalan.split(',')[1]})</ActionButton>);
+        let apc_buttons = (abonos.filter(abono => abono.estado === 1)).map( abono => <ActionButton style={ {minWidth: '50px'} } className="bg-red" medium onClick={ () => { setAPCModalState({...APCModalState, visible: true, id_abono: abono.id, chalan: abono.chalan}); console.log(nota); setCurrentOrder(nota); setCurrentNumber(''+abono.abonado) }} ml>APC <br/>${abono.abonado}</ActionButton>);
         return <div style={ {display: 'flex', justifyContent: 'space-between'} }>{ apc_buttons} </div>;
     };
 
@@ -788,7 +788,7 @@ export default function Pedidos(){
                 </div>
                 { filters ? (filters.chalan.length > 1  ? <Button className="bg-light-blue" onClick={ abrirModalConfirmacionAPC }>RECIBIR PAGO TOTAL DE CHALAN</Button>: null) : null}
 
-                <div style={ { overflowX: 'auto', marginTop: 20}}>
+                <div style={ { overflowX: 'auto', marginTop: 20, overflowY: 'auto', maxHeight: '88vh'}}>
                     { clientDebt  || clientDebt >= 0? <p style={ {fontSize: 24, marginTop: 0} }>Deuda total de { filters.cliente.split(',')[1]}  = <strong>${ roundNumber(clientDebt) }</strong></p>: null }
                     {/* { filters.chalan !== '0' && filters.chalan ? <p style={ {fontSize: 20} }>Total APC chalan <strong>{filters.chalan.split(',')[1]}</strong> = <strong>${ roundNumber((filterData().filter( item => item.estado === 4).map( item => item.total_pagar)).reduce( (anterior, actual) => anterior + actual, 0)) }</strong> </p> : null} */}
                     {/*  tableData ? <TableWraper data={tableData} openEditModal={ openEditModal } openFiarModal={openFiarModal} /> : null  */} 

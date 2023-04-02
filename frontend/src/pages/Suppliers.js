@@ -203,7 +203,7 @@ export default function Suppliers(){
 
                 <h2>LISTA DE PROVEEDORES</h2>
 
-                <div style={ { overflowX: 'auto'}}>
+                <div style={ { overflowX: 'auto', overflowY: 'auto', maxHeight: '61vh'}}>
                     <StyledTable>
                         <thead>
                             <tr>

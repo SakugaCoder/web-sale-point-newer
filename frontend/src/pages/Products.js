@@ -282,7 +282,7 @@ export default function Productos(){
 
                 <h2>LISTA DE PRODUCTOS</h2>
 
-                <div style={ { overflowX: 'auto'}}>
+                <div style={ { overflowX: 'auto', overflowY: 'auto', maxHeight: '33vh'}}>
                     <StyledTable>
                         <thead>
                             <tr>

@@ -1828,9 +1828,9 @@ function generateTicketAbono(abono){
             doc.text(abono.nombre_cliente, 25, 26);
 
             doc.setFont("helvetica", "normal");
-            doc.text('Deuda:', 35, 26);
+            doc.text('Deuda cliente:', 35, 26);
             doc.setFont("helvetica", "bold");
-            doc.text('$'+deuda, 50, 26);
+            doc.text('$'+deuda, 60, 26);
 
             current_y = 40;
             
@@ -1850,15 +1850,15 @@ function generateTicketAbono(abono){
             current_y += 10;
 
             
-            // Escribe el total de productos
-            doc.setFont("helvetica", "normal");
-            doc.text('Cantidad de productos: '+ abono.cantidad_productos, 20, current_y);
+            // // Escribe el total de productos
+            // doc.setFont("helvetica", "normal");
+            // doc.text('Cantidad de productos: '+ abono.cantidad_productos, 20, current_y);
 
-            current_y += 4;
+            // current_y += 4;
 
             // Escribe el mensaje de agradecimiento en el pdf
             doc.setFont("helvetica", "bold");
-            doc.text('Gracias por su abono', 21, current_y);
+            doc.text('Gracias por su abono', 24, current_y);
 
 
             

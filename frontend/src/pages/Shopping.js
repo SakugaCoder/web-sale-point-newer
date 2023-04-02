@@ -459,7 +459,7 @@ export default function Suppliers(){
                 { products && suppliers ?
                 <>
                 <h2>NUEVA COMPRA</h2>
-                <form onSubmit={ createShopping }>
+                <form onSubmit={ createShopping } autoComplete='off'>
                     <div style={ {display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap'} }>
                         <StyledInput type='date' placeholder='Fecha' label='Fecha' name='date' required maxWidth='300px' defaultValue={ currentDate ? currentDate.date : null }/>
                 
@@ -504,12 +504,13 @@ export default function Suppliers(){
                 
 
 
-                <div style={ { overflowX: 'auto', marginTop: 20}}>
+                <div style={ { overflowX: 'auto', marginTop: 20, overflowY: 'auto', maxHeight: '43vh'}}>
                     {/* <TableWraper openDeleteModal={openDeleteModal} />*/}
                     
                     <StyledTable>
                         <thead>
                             <tr>
+                                <td>ID</td>
                                 <td><input style={ {fontSize: 18} } type={'date'} name='date' onChange={ (evt) => setFilters({fecha: evt.target.value, proveedor: filters.proveedor, producto: filters.producto})}/></td>
                                 <td>
                                     <select style={ {fontSize: 20} } name='supplier' onChange={ (evt) => setFilters({fecha: filters.fecha, proveedor: Number(evt.target.value), producto: filters.producto })}>
@@ -535,6 +536,7 @@ export default function Suppliers(){
                             { tableData ? 
                                filterData().filter(item => item.id_proveedor !== 1).map( (item, index) => {
                                     return <tr key={index}>
+                                        <td><strong>{ item.id }</strong></td>
                                         <td>{ item.fecha }</td>
                                         <td>{ suppliers ? suppliers.filter( supplier => item.id_proveedor === supplier.id).map( supplier => supplier.nombre) : item.id_proveedor}</td>
                                         <td>{ products ? products.filter( product => item.id_producto === product.id).map( product => product.name) : item.id_producto}</td>
@@ -545,7 +547,7 @@ export default function Suppliers(){
                                         <td>${ item.abonos ? item.abonos.total_abonado_compra : null} </td>
                                         <td>${ item.abonos ? item.costo - item.abonos.total_abonado_compra : item.costo}</td>
                                         <td style={ {display: 'flex'} }>
-                                            <Button className="bg-red" onClick={ () => openDeleteModal(item) }><FontAwesomeIcon icon={faTimes} /> Eliminar</Button>
+                                            {/* <Button className="bg-red" onClick={ () => openDeleteModal(item) }><FontAwesomeIcon icon={faTimes} /> Eliminar</Button> */}
                                             { item.abonos? ( item.abonos.total_abonado_compra !== item.costo ? <Button ml className="bg-blue" onClick={ () => {setCurrentOrder(item); setAbonoModalState({...abonoModalState, visible: true})} }><FontAwesomeIcon icon={faPlus} /> Dar abono</Button> : null) : null }
                                             { item.abonos ? ( item.abonos.detalle_abonos_compras.length > 0 ? <Button ml className="bg-light-blue" onClick={ () => { showAbonosModal(item);} }>ver abonos</Button> :null ): null}
                                         </td>

@@ -285,7 +285,7 @@ export default function Users(){
 
                 <h2>LISTA DE USUARIOS</h2>
 
-                <div style={ { overflowX: 'auto'}}>
+                <div style={ { overflowX: 'auto', overflowY: 'auto', maxHeight: '40vh'}}>
                     <StyledTable>
                         <thead>
                             <tr>

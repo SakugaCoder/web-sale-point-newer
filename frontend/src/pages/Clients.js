@@ -287,7 +287,7 @@ export default function Clientes(){
                 <h2>LISTA DE CLIENTES</h2>
 
 
-                <div style={ { overflowX: 'auto'}}>
+                <div style={ { overflowX: 'auto', overflowY: 'auto', maxHeight: '50vh'}}>
                     <StyledTable>
                         <thead>
                             <tr>

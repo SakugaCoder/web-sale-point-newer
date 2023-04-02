@@ -83,7 +83,6 @@ const CustomerDataItemBascula = styled.div`
     flex-direction: row;
     justify-content: space-around;
     width: 100%;
-    background-color: #26C485;
     padding: 10px;
     border-radius: 10px;
     margin-left: 10px;
@@ -103,7 +102,12 @@ const CustomerDataItemBascula = styled.div`
     }
 
     label{
-        padding: 5px;
+        border-radius: 5px;
+    }
+
+    label div{
+        padding: 10px;
+        border: solid 1px #000;
         border-radius: 5px;
     }
 `;
@@ -243,6 +247,9 @@ const ContraEntrega = styled.div`
 `;
 
 const BasculaInfo = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: center;
     p{
         margin-bottom: 2px;
         margin-top: 8px;
@@ -256,6 +263,7 @@ const BasculaInfo = styled.div`
         height: 1.15em;
         border: 0.15em solid currentColor;
         border-radius: 50%;
+        display: none;
     }
 `;
 
@@ -515,7 +523,8 @@ export default function Main(){
             }
         }
         else{
-            item_data.kg = currentKg;
+            // item_data.kg = currentKg;
+            item_data.kg = net_weight;
         }
 
         if(item_data.venta_por === 'kg'){
@@ -843,27 +852,30 @@ export default function Main(){
 
                         </CustomerData>
                         <CustomerDataItemBascula>  
-                                <label htmlFor="b1" className="b-label-1" style={ {backgroundColor: scale === 'b1' ? '#048BA8': 'transparent' } }>
+                                <label htmlFor="b1" className="b-label-1" style={ {backgroundColor: scale === 'b1' ? '#048BA8': '#26C485' } }>
                                     <BasculaInfo>
                                         <input type='radio' name="selected-scale" value="b1" id="b1" onChange={ changeScale }/>
-                                        <p>B1:</p>
-                                        <strong>{ currentKg !== 'Error' ? scaleWeights.b1 + 'kg' : 'Error' } </strong>
+                                        <p>B1</p>
+                                        <strong>{ currentKg !== 'Error' ? scaleWeights.b1 : 'Error' } </strong>
+                                        <p>kg</p>
                                     </BasculaInfo>
                                 </label>
 
-                                <label htmlFor="b2" className="b-label-2" style={ {backgroundColor: scale === 'b2' ? '#048BA8': 'transparent' } }>
+                                <label htmlFor="b2" className="b-label-2" style={ {backgroundColor: scale === 'b2' ? '#048BA8': '#26C485' } }>
                                     <BasculaInfo>
                                         <input type='radio' name="selected-scale" value="b2" id="b2" onChange={ changeScale }/>
-                                        <p>B2:</p>
-                                        <strong>{ scaleWeights.b2 } kg</strong>
+                                        <p>B2</p>
+                                        <strong>{ scaleWeights.b2 }</strong>
+                                        <p>kg</p>
                                     </BasculaInfo>
                                 </label>
 
-                                <label htmlFor="b3" className="b-label-3" style={ {backgroundColor: scale === 'b3' ? '#048BA8': 'transparent' } }>
+                                <label htmlFor="b3" className="b-label-3" style={ {backgroundColor: scale === 'b3' ? '#048BA8': '#26C485' } }>
                                     <BasculaInfo>
                                     <input type='radio' name="selected-scale" value="b3" id="b3" onChange={ changeScale }/>
-                                        <p>B3:</p>
-                                        <strong>{ scaleWeights.b3 } kg</strong>
+                                        <p>B3</p>
+                                        <strong>{ scaleWeights.b3 }</strong>
+                                        <p>kg</p>
                                     </BasculaInfo>
                                 </label>
                         </CustomerDataItemBascula>

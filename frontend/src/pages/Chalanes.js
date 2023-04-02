@@ -231,7 +231,7 @@ export default function Chalanes(){
 
                 <h2>LISTA DE CHALANES</h2>
 
-                <div style={ { overflowX: 'auto'}}>
+                <div style={ { overflowX: 'auto', overflowY: 'auto', maxHeight: '50vh'}}>
                     <StyledTable>
                         <thead>
                             <tr>
